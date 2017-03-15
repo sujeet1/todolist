@@ -1,2 +1,2 @@
 # todolist
-Todo List Management
+Todo List Management for slack
