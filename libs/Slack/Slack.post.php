@@ -14,7 +14,7 @@ Class Slack {
      * @param $jsonArr
      */
     function postJson($url, $jsonArr) {
-        echo json_encode($jsonArr); return;
+        //echo json_encode($jsonArr); return;
 
         $ch = curl_init();
 
