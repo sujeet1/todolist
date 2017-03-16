@@ -20,6 +20,7 @@ define('IST_TIME_ADJUSTMENT', '+5 hours +30 minutes');
 /*
  *   Slack configurations
  */
-define('SLACK_TOKEN', 'xX3VIMBe2dUMswPJi8NnyeXK');			// Slack Token for Verification   (or ip like 192.168.0.1)
+define('SLACK_TOKEN', 'xxx');			// Slack Token for Verification   (or ip like 192.168.0.1)
+define('SLACK_INCOMMING_WEBHOOK', 'yyy');			// Slack Token for Verification   (or ip like 192.168.0.1)
 
 define('MAX_TODOS', 200);
