@@ -30,7 +30,7 @@ Class TodoModel {
         if(!empty($task)) {
             $search['task_name'] = $task;
         }
-        $this->dbObj->select(array('id','task_name'), $search);
+        $this->dbObj->select(array('id','task_name'), $search, array('id' => 'ASC'));
         return $this->dbObj->fetchAllMultiRecords()[0];
     }
 
