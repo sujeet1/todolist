@@ -52,24 +52,28 @@ Class Todo {
      * Server Incomming Request
      */
     function serveRequest() {
-        switch ($_POST['command']) {
-            case '/addtodo' :
-                $this->addTodo();
-                break;
-            case '/marktodo' :
-                $this->markTodo();
-                break;
-            case '/listtodos' :
-                $this->listTodo();
-                break;
-            case '/assigntodo' :    //<#no> to <@user>
-                $this->assignTodo();
-                break;
-            case '/pingtodo' :
-                $this->pingTodo();
-                break;
-            default:
-                echo Lang::$msg['UNABLE_TO_SERVER_REQUEST'];
+        try {
+            switch ($_POST['command']) {
+                case '/addtodo' :
+                    $this->addTodo();
+                    break;
+                case '/marktodo' :
+                    $this->markTodo();
+                    break;
+                case '/listtodos' :
+                    $this->listTodo();
+                    break;
+                case '/assigntodo' :    //<#no> to <@user>
+                    $this->assignTodo();
+                    break;
+                case '/pingtodo' :
+                    $this->pingTodo();
+                    break;
+                default:
+                    echo Lang::$msg['UNABLE_TO_SERVER_REQUEST'];
+            }
+        } catch (Exception $e) {
+            echo Lang::$msg['SERVER_DOWN'];
         }
     }
 
