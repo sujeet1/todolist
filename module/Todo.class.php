@@ -202,7 +202,7 @@ Class Todo {
         } else {
             $listMsg = '  *-- TODO LIST --*'."\n";
             foreach ($allTodos as $todo) {
-                $userAssigned = $todo['user_assigned'] ? "\t\t -> @".$todo['user_assigned'] : '';
+                $userAssigned = $todo['user_assigned'] ? "\t\t -> ".$todo['user_assigned'] : '';
                 $listMsg .= '`#'.$todo['id'].'` '.$todo['task_name']." $userAssigned\n";
             }
             $this->sendResponse('list', $listMsg);
