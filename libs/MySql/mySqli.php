@@ -377,6 +377,11 @@ class mySqliDB
         return $arrFields;
     }
 
+    function startTransaction() {
+        if($this->objMySqli) {
+            $this->objMySqli->begin_transaction(MYSQLI_TRANS_START_READ_WRITE);
+        }
+    }
 
     /**
      * This function is used to commit transaction
@@ -390,12 +395,12 @@ class mySqliDB
     /**
      * Insert values in table
      *
-     * @param AssociativeArray $values
+     * @param $values
      * @param string $fields
      * @param string $tblName
      * @internal param Array $fieldName
      * @internal param String $tableName
-     * @return unknown
+     * @return $this->result
      */
     public function insert($values, $fields = '', $tblName = '')
     {

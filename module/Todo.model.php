@@ -30,7 +30,44 @@ Class TodoModel {
         if(!empty($task)) {
             $search['task_name'] = $task;
         }
-        $this->dbObj->select(array('id','task_name'), $search, array('id' => 'ASC'));
+        //$this->dbObj->select(array('id','task_name'), $search, array('id' => 'ASC'));
+        $this->dbObj->query("SELECT id, task_name, ut.user_assigned
+                FROM todo_list todo
+                LEFT JOIN user_assigned_todo ut ON ut.todo_id = todo.id ".
+                $this->dbObj->evalWhereCondition($search). ' ORDER BY id ASC');
+        return $this->dbObj->fetchAllMultiRecords()[0];
+    }
+
+    /**
+     * Get Todo Detail for filter passed
+     *
+     * @param $filter
+     * @return mixed
+     */
+    function getTodo($filter) {
+        $this->dbObj->select(array('id','task_name', 'team_id', 'channel_id', 'channel_name', 'user_id'), $filter, array('id' => 'ASC'));
+        return $this->dbObj->fetchAllMultiRecords()[0];
+    }
+
+    /**
+     * Assign user to todo
+     */
+    function assignUser($userName, $todoId) {
+        $this->dbObj->tableName = 'user_assigned_todo';
+        $this->dbObj->insert(array('user_assigned'=>$userName, 'todo_id' => $todoId));
+        //return $this->dbObj->insertedID();
+    }
+
+    /**
+     * Get Todo Detail with Assignment for filter passed
+     *
+     * @param $filter
+     * @return mixed
+     */
+    function getTodoAssignDetail($filter) {
+        $this->dbObj->query("SELECT id, task_name, team_id, channel_id, channel_name, user_id, ut.user_assigned
+                FROM todo_list todo
+                LEFT JOIN user_assigned_todo ut ON ut.todo_id = todo.id ". $this->dbObj->evalWhereCondition($filter));
         return $this->dbObj->fetchAllMultiRecords()[0];
     }
 

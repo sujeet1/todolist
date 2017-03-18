@@ -1,14 +1,14 @@
 <?php
 
 require_once 'Todo.model.php';
-require_once PATH.'/libs/Slack/Slack.post.php';
+require_once PATH.'/libs/Slack/Slack.php';
 
 /**
  * Class Todo  - To Manage Todo task List via Slack
  */
 Class Todo {
     private $model;
-    private $slackResponse;
+    private $slack;
     private $responseUrl;
     private $user;
     private $team;
@@ -18,7 +18,7 @@ Class Todo {
     function __construct()
     {
         $this->model = new TodoModel();
-        $this->slackResponse = new Slack();
+        $this->slack = new Slack();
     }
 
     /**
@@ -62,12 +62,97 @@ Class Todo {
             case '/listtodos' :
                 $this->listTodo();
                 break;
+            case '/assigntodo' :    //<#no> to <@user>
+                $this->assignTodo();
+                break;
             case '/pingtodo' :
                 $this->pingTodo();
                 break;
             default:
                 echo Lang::$msg['UNABLE_TO_SERVER_REQUEST'];
         }
+    }
+
+    /**
+     * Assign todo task to any user with given channel
+     */
+    function assignTodo() {
+        if(preg_match('/^#([1-9][0-9]{0,})\sto\s@([a-z0-9A-Z\_\-]+)$/', trim($this->task), $matches, PREG_OFFSET_CAPTURE)) {
+            $todoId = (int) $matches[1][0];
+            $userName = $matches[2][0];
+            $activeTodo = $this->model->getTodoAssignDetail(array(
+                'id' => $todoId,
+                'team_id' => $this->team['id'],
+                'channel_id' => $this->channel['id'],
+                'status' => 'NEW'
+            ));
+            //print_r($activeTodo); exit;
+            if(count($activeTodo)) {
+                if($activeTodo[0]['channel_name'] != 'privategroup') {
+                    if(empty($activeTodo[0]['user_assigned'])) {
+                        $userInfo = $this->getUserInfo($userName);
+                        if(!empty($userInfo)) {
+                            if(isset($userInfo['channel_ids']) && in_array($this->channel['id'], $userInfo['channel_ids'])) {
+                                $this->assignTodoUser($userName, $todoId);
+                                $this->sendResponse('msg', "Todo '#$todoId' assigned to '@$userName'");
+                                $this->notifyAssignedUser($userName, $activeTodo[0]['task_name'], $activeTodo[0]['channel_name'], $this->user['name']);
+                            } else {
+                                $this->sendResponse('error', str_replace('##R1##', $userName, Lang::$msg['USER_NOT_IN_CHANNEL']));
+                            }
+                        } else {
+                            $this->sendResponse('error', str_replace('##R1##', $userName, Lang::$msg['USER_NOT_IN_TEAM']));
+                        }
+                    } else {
+                        $this->sendResponse('error', Lang::$msg['TODO_ALREADY_ASSIGNED']);
+                    }
+                } else {
+                    $this->sendResponse('error', Lang::$msg['PRIVATE_GROUP_FEATURE_ERROR']);
+                }
+            } else {
+                $this->sendResponse('error', 'TODO_id `#'.$todoId. '` '. Lang::$msg['TODO_DONT_EXIST']);
+            }
+        } else {
+            $this->sendResponse('error', Lang::$msg['INVALID_ASSIGN_COMMEND']. print_r($matches, true));
+        }
+    }
+
+    /**
+     * Assign Todo task to specific user
+     *
+     * @param $userName
+     * @param $todoId
+     */
+    function assignTodoUser($userName, $todoId) {
+        $this->model->assignUser($userName, $todoId);
+    }
+
+    /**
+     * Fetch User info for given username from slack team
+     *
+     * @param $userName
+     * @return array
+     */
+    function getUserInfo($userName) {
+        $userList = $this->slack->getUsersList();
+        $userInfo = array();
+        $userFound = false;
+        foreach ($userList as $index => $user) {
+            //echo $user['name']; echo " - $userName\n";
+            if($userName == $user['name']) {
+                $userFound = true;
+                $userInfo = $user;
+            }
+        }
+        if($userFound) {
+            $channelList = $this->slack->getChannelList();
+            foreach ($channelList as $channel) {
+                if(in_array($userInfo['id'], $channel['members'])) {
+                    $userInfo['channel_ids'][] = $channel['id'];
+                    $userInfo['channel_names'][] = $channel['name'];
+                }
+            }
+        }
+        return $userInfo;
     }
 
     /**
@@ -91,7 +176,7 @@ Class Todo {
         if($this->model->markTodoDone($this->team, $this->channel, $this->task)) {
             $this->sendResponse('msg', Lang::$msg['REMOVED_TODO'].' "'.$this->task.'"');
         } else {
-            $this->sendResponse('error', Lang::$msg['TODO_DONT_EXIST']);
+            $this->sendResponse('error', 'TODO "'.$this->task.'" '.Lang::$msg['TODO_DONT_EXIST']);
         }
     }
 
@@ -103,11 +188,12 @@ Class Todo {
         if(!count($allTodos)) {
             $this->sendResponse('error', Lang::$msg['NO_TODO']);
         } else {
-            $listMsg = '';
+            $listMsg = '  *-- TODO LIST --*'."\n";
             foreach ($allTodos as $todo) {
-                $listMsg .= '- #'.$todo['id'].' '.$todo['task_name']."\n";
+                $userAssigned = $todo['user_assigned'] ? "\t\t -> @".$todo['user_assigned'] : '';
+                $listMsg .= '`#'.$todo['id'].'` '.$todo['task_name']." $userAssigned\n";
             }
-            $this->sendResponse('msg', $listMsg);
+            $this->sendResponse('list', $listMsg);
         }
     }
 
@@ -120,20 +206,44 @@ Class Todo {
     function sendResponse($type, $message) {
         $respJson = array(
             'response_type' => 'in_channel',
-            'text' => $message
+            'attachments' => array(array(
+                'text' => $message,
+                'color' => '#228B22',
+                'attachment_type' => 'default'
+            ))
         );
-        if($type == 'error') {
-            $respJson['response_type'] = 'ephemeral';
+        switch ($type) {
+            case 'error' :
+                //$respJson['response_type'] = 'ephemeral';
+                $respJson['attachments'][0]['color'] = '#B22222';
+                break;
+            case 'msg' :
+                break;
+            case 'list' :
+                unset($respJson['attachments']);
+                $respJson['text'] = $message;
         }
-        $this->slackResponse->postJson($this->responseUrl, $respJson);
+        $this->slack->postJson($this->responseUrl, $respJson);
+    }
+
+    /**
+     * Send message to assigned user about their task assignment
+     *
+     * @param $userName
+     * @param $taskName
+     * @param $channelName
+     */
+    function notifyAssignedUser($userName, $taskName, $channelName, $assignedBy) {
+        $message = $assignedBy. ' has assigned you Todo task *'.$taskName.'* under channel "'.$channelName.'"';
+        $this->slack->notifyUser($userName, $message);
     }
 
     /**
      * Ping todo command
      */
     function pingTodo() {
-        echo " --Pong--  :p \n";
-        echo $_POST['text'];
+        echo " --Pong--  :p";
+        //echo $_POST['debug'];
     }
 
 }
