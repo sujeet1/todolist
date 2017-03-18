@@ -112,7 +112,7 @@ Class Todo {
                 $this->sendResponse('error', 'TODO_id `#'.$todoId. '` '. Lang::$msg['TODO_DONT_EXIST']);
             }
         } else {
-            $this->sendResponse('error', Lang::$msg['INVALID_ASSIGN_COMMEND']. print_r($matches, true));
+            $this->sendResponse('error', Lang::$msg['INVALID_ASSIGN_COMMEND']);
         }
     }
 
@@ -173,8 +173,20 @@ Class Todo {
      * Mark a todo task as done
      */
     function markTodo() {
-        if($this->model->markTodoDone($this->team, $this->channel, $this->task)) {
-            $this->sendResponse('msg', Lang::$msg['REMOVED_TODO'].' "'.$this->task.'"');
+        $todoDetail = $this->model->getTodoAssignDetail(array(
+            'task_name' => $this->task,
+            'team_id' => $this->team['id'],
+            'channel_id' => $this->channel['id'],
+            'status' => 'NEW'
+        ));
+        if(count($todoDetail)) {
+            if(empty($todoDetail[0]['user_assigned']) || $todoDetail[0]['user_assigned'] == $this->user['name']) {
+                if($this->model->markTodoDone($this->team, $this->channel, $this->task)) {
+                    $this->sendResponse('msg', Lang::$msg['REMOVED_TODO'].' "'.$this->task.'"');
+                }
+            } else {
+                $this->sendResponse('error', Lang::$msg['TODO_NOT_ASSIGNED_CANT_MARK_DONE']);
+            }
         } else {
             $this->sendResponse('error', 'TODO "'.$this->task.'" '.Lang::$msg['TODO_DONT_EXIST']);
         }

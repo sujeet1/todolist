@@ -113,6 +113,14 @@ Class TodoModel {
         ));
     }
 
+    /**
+     * Mark todo as done
+     *
+     * @param $team
+     * @param $channel
+     * @param $task
+     * @return number
+     */
     function markTodoDone($team, $channel, $task) {
         $this->dbObj->update(array('status'=>'DONE'),
             array(

@@ -19,6 +19,7 @@ Class En extends Lang {
         Lang::$msg['USER_NOT_IN_CHANNEL'] = 'User "##R1##" not in this channel';
         Lang::$msg['USER_NOT_IN_TEAM'] = 'User "##R1##" not in team';
         Lang::$msg['TODO_ALREADY_ASSIGNED'] = 'Todo task already assigned';
+        Lang::$msg['TODO_NOT_ASSIGNED_CANT_MARK_DONE'] = 'You can\'t mark task assigned to other user';
     }
 }
 
