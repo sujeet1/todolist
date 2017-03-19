@@ -15,3 +15,9 @@ CREATE TABLE `todo_list` (
 ) ENGINE=InnoDB;
 
 
+CREATE TABLE `user_assigned_todo` (
+  `user_assigned` varchar(60) NOT NULL,
+  `todo_id` int(11) NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_assigned`,`todo_id`)
+) ENGINE=InnoDB;
